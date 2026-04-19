@@ -20,7 +20,7 @@ A minimal event-driven synchronization layer for browser storage
 ## Installation
 
 ```bash
-npm install syncl
+npm i @erinday/syncl
 ```
 
 ---
@@ -51,6 +51,18 @@ const off = store.on(() => {
 // unsubscribe
 off()
 ```
+
+---
+
+## Options
+
+`SynclCreateParams`
+
+| Option      | Type      | Default        | Description                                                      |
+| ----------- | --------- | -------------- |------------------------------------------------------------------|
+| `version`   | `string`  | `'1'`          | Storage version. If changed, all namespaced data will be cleared |
+| `namespace` | `string`  | `'__ls_'`      | Prefix for all keys to isolate your data in storage              |
+| `storage`   | `Storage` | `localStorage` | Storage instance (`localStorage` or `sessionStorage`)            |
 
 ---
 
@@ -129,7 +141,7 @@ MIT
 ## Установка
 
 ```bash
-npm install syncl
+npm i @erinday/syncl
 ```
 
 ---
@@ -160,6 +172,18 @@ const off = store.on(() => {
 // отписка
 off()
 ```
+
+---
+
+## Параметры
+
+`SynclCreateParams`
+
+| Параметр    | Тип       | По умолчанию   | Описание                                                         |
+| ----------- | --------- | -------------- |------------------------------------------------------------------|
+| `version`   | `string`  | `'1'`          | Версия хранилища. При изменении очищаются все данные в namespace |
+| `namespace` | `string`  | `'__ls_'`      | Префикс для ключей, изолирует данные внутри storage              |
+| `storage`   | `Storage` | `localStorage` | Используемое хранилище (`localStorage` или `sessionStorage`)     |
 
 ---
 
