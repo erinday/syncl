@@ -4,10 +4,10 @@ export * from './types/'
 export class Syncl<K extends string> {
   #s: SynclSettings = {
     version: '1',
-    namespace: '__ls_',
+    namespace: '__ls',
+    prefix: '__ls_',
     versionKey: '_version',
     storage: localStorage,
-    eventName: '__ls_update'
   }
 
   constructor (params: SynclCreateParams = {}) {
@@ -15,7 +15,7 @@ export class Syncl<K extends string> {
     if (params.storage) this.#s.storage = params.storage
     if (params.namespace) {
       this.#s.namespace = params.namespace
-      this.#s.eventName = `${params.namespace}update`
+      this.#s.prefix = `${this.#s.namespace}_`
     }
 
     const v: string | null = this.#s.storage.getItem(this.#getKey(this.#s.versionKey))
@@ -23,7 +23,11 @@ export class Syncl<K extends string> {
   }
 
   #getKey (name: string): string {
-    return `${this.#s.namespace}${name}`
+    return `${this.#s.prefix}${name}`
+  }
+
+  get eventUpdateName (): string {
+    return `${this.#s.namespace}:update`
   }
 
   getValue (name: K): string | null {
@@ -47,26 +51,38 @@ export class Syncl<K extends string> {
 
   clean (): void {
     const storage: Storage = this.#s.storage
+    const versionKey: string = this.#getKey(this.#s.versionKey)
+    let changed: boolean = false
     let i: number = 0
     let key: string | null = storage.key(i)
     while (key) {
-      if (key.startsWith(this.#s.namespace)) storage.removeItem(key)
+      if (key.startsWith(this.#s.prefix) && key !== versionKey) {
+        storage.removeItem(key)
+        changed = true
+      }
       else ++i
       key = storage.key(i)
     }
-    storage.setItem(this.#getKey(this.#s.versionKey), this.#s.version)
+    const v = storage.getItem(versionKey)
+    if (v !== this.#s.version) {
+      storage.setItem(versionKey, this.#s.version)
+      changed = true
+    }
+    if (changed) this.emit()
   }
 
   emit (): void {
-    window.dispatchEvent(new CustomEvent(this.#s.eventName))
+    if (typeof window === 'undefined') return
+    window.dispatchEvent(new CustomEvent(this.eventUpdateName))
   }
 
   on (cb: () => void): () => void {
-    const namespace : string = this.#s.namespace
+    if (typeof window === 'undefined') return () => {}
+    const prefix: string = this.#s.prefix
 
     function handlerNative (event: StorageEvent): void {
       const key: string | null = event.key
-      if (key === null || key.startsWith(namespace)) cb()
+      if (key === null || key.startsWith(prefix)) cb()
     }
 
     function handlerCustom (): void {
@@ -74,11 +90,11 @@ export class Syncl<K extends string> {
     }
 
     window.addEventListener('storage', handlerNative)
-    window.addEventListener(this.#s.eventName, handlerCustom)
+    window.addEventListener(this.eventUpdateName, handlerCustom)
 
     return () => {
       window.removeEventListener('storage', handlerNative)
-      window.removeEventListener(this.#s.eventName, handlerCustom)
+      window.removeEventListener(this.eventUpdateName, handlerCustom)
     }
   }
 }

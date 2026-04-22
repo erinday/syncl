@@ -1,17 +1,23 @@
 # syncl
 
-**Reactive storage sync. No magic**
+[![npm version](https://badge.fury.io/js/@erinday%2Fsyncl.svg)](https://www.npmjs.com/package/@erinday/syncl)
+[![npm downloads](https://img.shields.io/npm/dm/@erinday/syncl.svg)](https://www.npmjs.com/package/@erinday/syncl)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A minimal event-driven synchronization layer for browser storage
+**Read this in other languages: [Русский](README.ru.md)**
+
+**Reactive sync for localStorage across tabs and components - with zero abstractions**
+
+A tiny event-driven layer on top of browser storage
 
 ---
 
 ## Features
 
-* Cross-tab sync (native `storage` event)
-* Same-tab sync (custom events)
+* Cross-tab sync via native `storage`
+* Same-tab reactivity via custom events
 * Works with `localStorage` and `sessionStorage`
-* Namespace isolation
+* Namespace isolation (no key collisions)
 * Version-based invalidation
 * Zero dependencies
 
@@ -28,12 +34,12 @@ npm i @erinday/syncl
 ## Usage
 
 ```ts
-import { Syncl } from 'syncl'
+import { Syncl } from '@erinday/syncl'
 
 type Keys = 'user' | 'theme'
 
 const store = new Syncl<Keys>({
-  namespace: '__app_',
+  namespace: '__app', // ⚠️ no trailing underscore
   version: '1'
 })
 
@@ -54,15 +60,38 @@ off()
 
 ---
 
+## API
+
+### Methods
+
+| Method                 | Description                                         |
+| ---------------------- | --------------------------------------------------- |
+| `getValue(key)`        | Get value by key                                    |
+| `setValue(key, value)` | Set value (emits update if changed)                 |
+| `removeValue(key)`     | Remove value (emits update)                         |
+| `clean()`              | Clear all namespaced data (emits update if changed) |
+| `on(cb)`               | Subscribe to changes. Returns unsubscribe function  |
+| `emit()`               | Manually trigger update event                       |
+
+---
+
+### Properties
+
+| Property          | Description                                   |
+| ----------------- | --------------------------------------------- |
+| `eventUpdateName` | Name of the update event (`namespace:update`) |
+
+---
+
 ## Options
 
 `SynclCreateParams`
 
-| Option      | Type      | Default        | Description                                                      |
-| ----------- | --------- | -------------- |------------------------------------------------------------------|
-| `version`   | `string`  | `'1'`          | Storage version. If changed, all namespaced data will be cleared |
-| `namespace` | `string`  | `'__ls_'`      | Prefix for all keys to isolate your data in storage              |
-| `storage`   | `Storage` | `localStorage` | Storage instance (`localStorage` or `sessionStorage`)            |
+| Option      | Type      | Default        | Description                                           |
+| ----------- | --------- | -------------- | ----------------------------------------------------- |
+| `version`   | `string`  | `'1'`          | Changing version clears all namespaced data           |
+| `namespace` | `string`  | `'__ls'`       | Logical namespace (used for keys and events)          |
+| `storage`   | `Storage` | `localStorage` | Storage instance (`localStorage` or `sessionStorage`) |
 
 ---
 
@@ -74,9 +103,10 @@ syncl is intentionally **low-level**:
 * No schema
 * No state management
 
-It only:
+It only does two things:
 
-synchronizes storage → emits change signals
+→ sync storage
+→ emit change signals
 
 Everything else is up to you
 
@@ -84,18 +114,21 @@ Everything else is up to you
 
 ## Versioning
 
-Changing version clears all namespaced storage:
-
 ```ts
 new Syncl({ version: '2' })
 ```
 
+If the version differs from the one stored, all namespaced data is cleared during initialization
+
 ---
 
 ## Example: JSON helper
+Simple helper example (can be generalized with generics)
 
 ```ts
-function getJSON<T>(store: Syncl<any>, key: string): T | null {
+type Keys = 'user' | 'theme'
+
+function getJSON<T>(store: Syncl<Keys>, key: Keys): T | null {
   const value = store.getValue(key)
   return value ? JSON.parse(value) : null
 }
@@ -111,116 +144,12 @@ function getJSON<T>(store: Syncl<any>, key: string): T | null {
 
 ---
 
+## Changelog
+
+See CHANGELOG for [English](CHANGELOG.md) or [Russian](CHANGELOG.ru.md) version
+
+---
+
 ## License
-
-MIT
-
----
-
-# 🇷🇺 Русская версия
-
-## syncl
-
-**Реактивная синхронизация storage. Без магии**
-
-Минимальный event-driven слой для синхронизации browser storage
-
----
-
-## Возможности
-
-* Синхронизация между вкладками (`storage` event)
-* Синхронизация внутри вкладки (custom events)
-* Поддержка `localStorage` и `sessionStorage`
-* Изоляция через namespace
-* Инвалидация по версии
-* Без зависимостей
-
----
-
-## Установка
-
-```bash
-npm i @erinday/syncl
-```
-
----
-
-## Использование
-
-```ts
-import { Syncl } from 'syncl'
-
-type Keys = 'user' | 'theme'
-
-const store = new Syncl<Keys>({
-  namespace: '__app_',
-  version: '1'
-})
-
-// записать значение
-store.setValue('theme', 'dark')
-
-// получить значение
-const theme = store.getValue('theme')
-
-// подписка на изменения
-const off = store.on(() => {
-  console.log('storage изменился')
-})
-
-// отписка
-off()
-```
-
----
-
-## Параметры
-
-`SynclCreateParams`
-
-| Параметр    | Тип       | По умолчанию   | Описание                                                         |
-| ----------- | --------- | -------------- |------------------------------------------------------------------|
-| `version`   | `string`  | `'1'`          | Версия хранилища. При изменении очищаются все данные в namespace |
-| `namespace` | `string`  | `'__ls_'`      | Префикс для ключей, изолирует данные внутри storage              |
-| `storage`   | `Storage` | `localStorage` | Используемое хранилище (`localStorage` или `sessionStorage`)     |
-
----
-
-## Философия
-
-syncl намеренно **низкоуровневый**:
-
-* Без JSON
-* Без схем
-* Без state-менеджмента
-
-Он только:
-
-синхронизирует storage → отправляет сигнал об изменениях
-
-Всё остальное на стороне пользователя
-
----
-
-## Версионирование
-
-При изменении версии storage очищается:
-
-```ts
-new Syncl({ version: '2' })
-```
-
----
-
-## syncl НЕ является
-
-* Не state manager
-* Не слой хранения данных
-* Не абстракция над данными
-
----
-
-## Лицензия
 
 MIT
