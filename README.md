@@ -72,14 +72,14 @@ off()
 | `clean()`              | Clear all namespaced data (emits update if changed) |
 | `on(cb)`               | Subscribe to changes. Returns unsubscribe function  |
 | `emit()`               | Manually trigger update event                       |
-
----
+| `isSynclKey(key)`      | Check if a key belongs to this Syncl instance       |
 
 ### Properties
 
 | Property          | Description                                   |
 | ----------------- | --------------------------------------------- |
 | `eventUpdateName` | Name of the update event (`namespace:update`) |
+| `prefix`          | Storage key prefix used by the instance (e.g., `'__app_'`) |
 
 ---
 
@@ -92,6 +92,38 @@ off()
 | `version`   | `string`  | `'1'`          | Changing version clears all namespaced data           |
 | `namespace` | `string`  | `'__ls'`       | Logical namespace (used for keys and events)          |
 | `storage`   | `Storage` | `localStorage` | Storage instance (`localStorage` or `sessionStorage`) |
+
+---
+
+## Events
+
+Syncl uses **two event sources**
+
+### Native storage (cross-tab)
+
+```ts
+window.addEventListener('storage', (event) => {
+  if (store.isSynclKey(event.key)) {
+    console.log('Syncl key changed:', event.key, event.newValue)
+  }
+})
+```
+
+### Custom event (same-tab)
+
+```ts
+window.addEventListener(store.eventUpdateName, () => {
+  console.log('Updated in current tab')
+})
+```
+
+### Unified subscription
+
+```ts
+store.on(() => {
+  console.log('Any change (same tab + other tabs)')
+})
+```
 
 ---
 

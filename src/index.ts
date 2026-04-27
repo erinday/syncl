@@ -17,13 +17,17 @@ export class Syncl<K extends string> {
       this.#s.namespace = params.namespace
       this.#s.prefix = `${this.#s.namespace}_`
     }
-
+    if (typeof window === 'undefined') return
     const v: string | null = this.#s.storage.getItem(this.#getKey(this.#s.versionKey))
     if (v !== this.#s.version) this.clean()
   }
 
   #getKey (name: string): string {
     return `${this.#s.prefix}${name}`
+  }
+
+  get prefix (): string {
+    return this.#s.prefix
   }
 
   get eventUpdateName (): string {
@@ -69,6 +73,10 @@ export class Syncl<K extends string> {
       changed = true
     }
     if (changed) this.emit()
+  }
+
+  isSynclKey (key: string | null): boolean {
+    return !!key && key.startsWith(this.#s.prefix)
   }
 
   emit (): void {

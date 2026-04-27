@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2026-04-27
+
+### Added
+
+- `isSynclKey(key: string | null): boolean`
+  - Checks whether a storage key belongs to the current Syncl instance
+  - Returns `true` if the key starts with the instance prefix
+  - Useful for filtering native `storage` events
+
+### Improved
+
+- Exposed `prefix` as a public getter
+  - Allows manual key filtering and debugging
+  - Makes integration with native `storage` events easier
+
+---
+
+### Example
+
+```ts
+const store = new Syncl({ namespace: '__app' })
+
+window.addEventListener('storage', (event) => {
+  if (store.isSynclKey(event.key)) {
+    console.log('Syncl key changed:', event.key)
+  }
+})
+
+// raw access if needed
+window.addEventListener('storage', (event) => {
+  console.log(event.key, event.newValue)
+})
+
+// same-tab updates
+window.addEventListener(store.eventUpdateName, () => {
+  console.log('Updated in current tab')
+})
+```
+
+---
+
 ## [2.0.0] - 2026-04-22
 
 ### ⚠️ Breaking Changes

@@ -7,6 +7,45 @@
 
 ---
 
+## [2.1.0] - 2026-04-27
+
+### Добавлено
+
+- `isSynclKey(key: string | null): boolean`
+  - Проверяет, относится ли ключ к текущему экземпляру Syncl
+  - Возвращает `true`, если ключ начинается с префикса
+  - Удобно для фильтрации нативных `storage` событий
+
+### Улучшено
+
+- `prefix` теперь доступен через публичный getter
+  - Упрощает фильтрацию ключей и отладку
+  - Позволяет удобнее работать с нативным `storage` событием
+
+### Пример
+
+```ts
+const store = new Syncl({ namespace: '__app' })
+
+window.addEventListener('storage', (event) => {
+  if (store.isSynclKey(event.key)) {
+    console.log('Изменился ключ Syncl:', event.key)
+  }
+})
+
+// доступ к нативным событиям
+window.addEventListener('storage', (event) => {
+  console.log(event.key, event.newValue)
+})
+
+// обновления в текущей вкладке
+window.addEventListener(store.eventUpdateName, () => {
+  console.log('Обновление в текущей вкладке')
+})
+```
+
+---
+
 ## [2.0.0] - 2026-04-22
 
 ### ⚠️ Критические изменения
