@@ -21,7 +21,6 @@ A tiny event-driven layer on top of browser storage
 * Version-based invalidation
 * Zero dependencies
 
----
 
 ## Installation
 
@@ -29,7 +28,6 @@ A tiny event-driven layer on top of browser storage
 npm i @erinday/syncl
 ```
 
----
 
 ## Usage
 
@@ -58,7 +56,6 @@ const off = store.on(() => {
 off()
 ```
 
----
 
 ## API
 
@@ -69,10 +66,11 @@ off()
 | `getValue(key)`        | Get value by key                                    |
 | `setValue(key, value)` | Set value (emits update if changed)                 |
 | `removeValue(key)`     | Remove value (emits update)                         |
-| `clean()`              | Clear all namespaced data (emits update if changed) |
+| `clean()`              | Clear all namespaced data (emits update with `null`) |
 | `on(cb)`               | Subscribe to changes. Returns unsubscribe function  |
-| `emit()`               | Manually trigger update event                       |
-| `isSynclKey(key)`      | Check if a key belongs to this Syncl instance       |
+| `emit(event)`          | Manually trigger update event with payload         |
+| `isSynclKey(key)`      | Check if a key belongs to this Syncl instance      |
+| `toPublicKey(key)`     | Convert internal prefixed key to public typed key  |
 
 ### Properties
 
@@ -81,7 +79,6 @@ off()
 | `eventUpdateName` | Name of the update event (`namespace:update`) |
 | `prefix`          | Storage key prefix used by the instance (e.g., `'__app_'`) |
 
----
 
 ## Options
 
@@ -93,7 +90,6 @@ off()
 | `namespace` | `string`  | `'__ls'`       | Logical namespace (used for keys and events)          |
 | `storage`   | `Storage` | `localStorage` | Storage instance (`localStorage` or `sessionStorage`) |
 
----
 
 ## Events
 
@@ -103,8 +99,10 @@ Syncl uses **two event sources**
 
 ```ts
 window.addEventListener('storage', (event) => {
+  if (event.key === null) return  // handle cleanup
   if (store.isSynclKey(event.key)) {
-    console.log('Syncl key changed:', event.key, event.newValue)
+    const key = store.toPublicKey(event.key)
+    console.log('Key changed in another tab:', key)
   }
 })
 ```
@@ -120,12 +118,49 @@ window.addEventListener(store.eventUpdateName, () => {
 ### Unified subscription
 
 ```ts
-store.on(() => {
-  console.log('Any change (same tab + other tabs)')
+store.on(({ key }) => {
+  if (key === null) {
+    console.log('Storage was cleared')
+  } else {
+    console.log(`Key "${key}" changed`)
+  }
 })
 ```
 
----
+
+## Helper methods for native storage
+
+```ts
+// Check if a key belongs to Syncl
+if (store.isSynclKey(fullKey)) {
+  console.log('Is Syncl key')
+}
+
+// Convert internal key to public typed key
+const publicKey = store.toPublicKey(fullKey)  // returns K
+```
+
+
+## Versioning
+
+```ts
+new Syncl({ version: '2' })
+```
+
+If the version differs from the one stored, all namespaced data is cleared during initialization
+
+
+## Example: JSON helper
+Simple helper example (can be generalized with generics)
+
+```ts
+type Keys = 'user' | 'theme'
+
+function getJSON<T>(store: Syncl<Keys>, key: Keys): T | null {
+  const value = store.getValue(key)
+  return value ? JSON.parse(value) : null
+}
+```
 
 ## Philosophy
 
@@ -142,31 +177,6 @@ It only does two things:
 
 Everything else is up to you
 
----
-
-## Versioning
-
-```ts
-new Syncl({ version: '2' })
-```
-
-If the version differs from the one stored, all namespaced data is cleared during initialization
-
----
-
-## Example: JSON helper
-Simple helper example (can be generalized with generics)
-
-```ts
-type Keys = 'user' | 'theme'
-
-function getJSON<T>(store: Syncl<Keys>, key: Keys): T | null {
-  const value = store.getValue(key)
-  return value ? JSON.parse(value) : null
-}
-```
-
----
 
 ## What syncl is NOT
 
@@ -174,13 +184,11 @@ function getJSON<T>(store: Syncl<Keys>, key: Keys): T | null {
 * Not a persistence layer
 * Not a data abstraction
 
----
 
 ## Changelog
 
 See CHANGELOG for [English](CHANGELOG.md) or [Russian](CHANGELOG.ru.md) version
 
----
 
 ## License
 

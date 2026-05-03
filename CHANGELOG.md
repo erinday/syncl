@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.0] - 2026-05-03
+
+### ⚠️ Breaking Changes
+
+- **Event system redesigned** - `emit()` and `on()` now provide detailed key information
+  - `emit({ key: name })` instead of `emit()`
+  - `on(cb)` now receives `{ key: K | null }` instead of no parameters
+- **`isSynclKey()` signature changed** - now accepts `string` only
+  - Due to `StorageEvent.key` can be `null`, users must handle `null` explicitly before calling
+
+### Added
+
+- **Full SSR support** - mock storage for server-side rendering
+- **`SynclEventUpdate<K>` interface** - typed event payload with generic key type
+- **`toPublicKey()` method** - converts internal prefixed key to public typed key (returns `K`, never `null`)
+
+### Changed
+
+- **Improved storage operations** - `#getKey()` called once per operation (performance)
+- **Cleaner event handling** - explicit `null` checks in `handlerNative`
+- **Better TypeScript support** - full type safety for event keys
+
+---
+
 ## [2.1.1] - 2026-04-27
 
 ### Fixed

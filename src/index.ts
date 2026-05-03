@@ -1,13 +1,23 @@
-import { SynclCreateParams, SynclSettings } from './types/'
+import { SynclCreateParams, SynclEventUpdate, SynclSettings } from './types/'
 export * from './types/'
 
+const mockStorage: Storage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+  clear: () => {},
+  key: () => null,
+  length: 0
+}
+
 export class Syncl<K extends string> {
+  #isBrowser: boolean = typeof window !== 'undefined'
   #s: SynclSettings = {
     version: '1',
     namespace: '__ls',
     prefix: '__ls_',
     versionKey: '_version',
-    storage: localStorage,
+    storage: this.#isBrowser ? localStorage : mockStorage
   }
 
   constructor (params: SynclCreateParams = {}) {
@@ -17,7 +27,7 @@ export class Syncl<K extends string> {
       this.#s.namespace = params.namespace
       this.#s.prefix = `${this.#s.namespace}_`
     }
-    if (typeof window === 'undefined') return
+    if (!this.#isBrowser) return
     const v: string | null = this.#s.storage.getItem(this.#getKey(this.#s.versionKey))
     if (v !== this.#s.version) this.clean()
   }
@@ -35,14 +45,16 @@ export class Syncl<K extends string> {
   }
 
   getValue (name: K): string | null {
-    return this.#s.storage.getItem(this.#getKey(name))
+    const key: string = this.#getKey(name)
+    return this.#s.storage.getItem(key)
   }
 
   setValue (name: K, value: string): void {
-    const prevValue: string | null = this.getValue(name)
+    const key: string = this.#getKey(name)
+    const prevValue: string | null = this.#s.storage.getItem(key)
     if (prevValue === value) return
-    this.#s.storage.setItem(this.#getKey(name), value)
-    this.emit()
+    this.#s.storage.setItem(key, value)
+    this.emit({ key: name })
   }
 
   removeValue (name: K): void {
@@ -50,7 +62,7 @@ export class Syncl<K extends string> {
     const isExisted: boolean = this.#s.storage.getItem(key) !== null
     if (!isExisted) return
     this.#s.storage.removeItem(key)
-    this.emit()
+    this.emit({ key: name })
   }
 
   clean (): void {
@@ -60,7 +72,7 @@ export class Syncl<K extends string> {
     let i: number = 0
     let key: string | null = storage.key(i)
     while (key) {
-      if (key.startsWith(this.#s.prefix) && key !== versionKey) {
+      if (this.isSynclKey(key) && key !== versionKey) {
         storage.removeItem(key)
         changed = true
       }
@@ -72,29 +84,35 @@ export class Syncl<K extends string> {
       storage.setItem(versionKey, this.#s.version)
       changed = true
     }
-    if (changed) this.emit()
+    if (changed) this.emit({ key: null })
   }
 
-  isSynclKey (key: string | null): boolean {
-    return !!key && key.startsWith(this.#s.prefix)
+  isSynclKey (key: string): boolean {
+    return key.startsWith(this.#s.prefix)
   }
 
-  emit (): void {
-    if (typeof window === 'undefined') return
-    window.dispatchEvent(new CustomEvent(this.eventUpdateName))
+  toPublicKey (key: string): K {
+    return key.slice(this.#s.prefix.length) as K
   }
 
-  on (cb: () => void): () => void {
-    if (typeof window === 'undefined') return () => {}
-    const prefix: string = this.#s.prefix
+  emit (event: SynclEventUpdate<K>): void {
+    if (!this.#isBrowser) return
+    window.dispatchEvent(new CustomEvent<SynclEventUpdate<K>>(this.eventUpdateName, { detail: event }))
+  }
 
-    function handlerNative (event: StorageEvent): void {
+  on (cb: (event: SynclEventUpdate<K>) => void): () => void {
+    if (!this.#isBrowser) return () => {}
+
+    const handlerNative = (event: StorageEvent): void => {
       const key: string | null = event.key
-      if (key === null || key.startsWith(prefix)) cb()
+      if (key === null) cb({ key: null })
+      else if (this.isSynclKey(key)) cb({ key: this.toPublicKey(key) })
     }
 
-    function handlerCustom (): void {
-      cb()
+    const handlerCustom = (event: Event): void => {
+      if (!(event instanceof CustomEvent)) return
+      const detail = event.detail as SynclEventUpdate<K> | undefined
+      if (detail) cb({ key: detail.key })
     }
 
     window.addEventListener('storage', handlerNative)

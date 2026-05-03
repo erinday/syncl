@@ -7,3 +7,7 @@ export interface SynclSettings {
 }
 
 export type SynclCreateParams = Partial<Pick<SynclSettings, 'version' | 'namespace' | 'storage'>>
+
+export interface SynclEventUpdate<K extends string = string> {
+  key: K | null;
+}

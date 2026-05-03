@@ -21,7 +21,6 @@
 * Инвалидация по версии
 * Без зависимостей
 
----
 
 ## Установка
 
@@ -29,7 +28,6 @@
 npm i @erinday/syncl
 ```
 
----
 
 ## Использование
 
@@ -58,7 +56,6 @@ const off = store.on(() => {
 off()
 ```
 
----
 
 ## API
 
@@ -69,10 +66,11 @@ off()
 | `getValue(key)`        | Получить значение по ключу                                  |
 | `setValue(key, value)` | Установить значение (отправляет событие при изменении)      |
 | `removeValue(key)`     | Удалить значение (отправляет событие)                       |
-| `clean()`              | Очистить все данные в namespace (отправляет событие при изменениях) |
+| `clean()`              | Очистить все данные в namespace (отправляет событие с `null`) |
 | `on(cb)`               | Подписаться на изменения. Возвращает функцию отписки        |
-| `emit()`               | Вручную вызвать событие обновления                          |
+| `emit(event)`          | Вручную вызвать событие обновления с payload                |
 | `isSynclKey(key)`      | Проверить, принадлежит ли ключ этому экземпляру Syncl       |
+| `toPublicKey(key)`     | Преобразовать внутренний ключ с префиксом в публичный типизированный ключ |
 
 ### Свойства
 
@@ -81,7 +79,6 @@ off()
 | `eventUpdateName` | Имя события обновления (`namespace:update`) |
 | `prefix`          | Префикс ключей хранилища, используемый экземпляром (например, `'__app_'`) |
 
----
 
 ## Параметры
 
@@ -93,7 +90,6 @@ off()
 | `namespace` | `string`  | `'__ls'`       | Пространство имён (используется в ключах и событиях) |
 | `storage`   | `Storage` | `localStorage` | Хранилище (`localStorage` или `sessionStorage`)      |
 
----
 
 ## События
 
@@ -103,8 +99,10 @@ Syncl использует **два источника событий**
 
 ```ts
 window.addEventListener('storage', (event) => {
+  if (event.key === null) return  // обработать очистку
   if (store.isSynclKey(event.key)) {
-    console.log('Изменился ключ Syncl:', event.key, event.newValue)
+    const key = store.toPublicKey(event.key)
+    console.log('Ключ изменился в другой вкладке:', key)
   }
 })
 ```
@@ -120,12 +118,50 @@ window.addEventListener(store.eventUpdateName, () => {
 ### Универсальная подписка
 
 ```ts
-store.on(() => {
-  console.log('Любое изменение')
+store.on(({ key }) => {
+  if (key === null) {
+    console.log('Storage был очищен')
+  } else {
+    console.log(`Ключ "${key}" изменился`)
+  }
 })
 ```
 
----
+
+## Вспомогательные методы для нативного storage
+
+```ts
+// Проверить, принадлежит ли ключ Syncl
+if (store.isSynclKey(fullKey)) {
+  console.log('Принадлежит Syncl')
+}
+
+// Преобразовать внутренний ключ в публичный типизированный
+const publicKey = store.toPublicKey(fullKey)  // возвращает K
+```
+
+
+## Версионирование
+
+```ts
+new Syncl({ version: '2' })
+```
+
+Если версия отличается от сохранённой, все данные в namespace очищаются при инициализации
+
+
+## Пример: JSON helper
+Простой вспомогательный пример (можно улучшить с помощью generics)
+
+```ts
+type Keys = 'user' | 'theme'
+
+function getJSON<T>(store: Syncl<Keys>, key: Keys): T | null {
+  const value = store.getValue(key)
+  return value ? JSON.parse(value) : null
+}
+```
+
 
 ## Философия
 
@@ -142,29 +178,6 @@ syncl намеренно **низкоуровневый**:
 
 Всё остальное - на стороне пользователя
 
----
-
-## Версионирование
-
-```ts
-new Syncl({ version: '2' })
-```
-
-Если версия отличается от сохранённой, все данные в namespace очищаются при инициализации
-
----
-
-## Пример: JSON helper
-Простой вспомогательный пример (можно улучшить с помощью generics)
-
-```ts
-type Keys = 'user' | 'theme'
-
-function getJSON<T>(store: Syncl<Keys>, key: Keys): T | null {
-  const value = store.getValue(key)
-  return value ? JSON.parse(value) : null
-}
-```
 
 ## syncl НЕ является
 
@@ -172,13 +185,11 @@ function getJSON<T>(store: Syncl<Keys>, key: Keys): T | null {
 * Не слой хранения данных
 * Не абстракция над данными
 
----
 
 ## Список изменений
 
 Смотрите CHANGELOG в [английской](CHANGELOG.md) или [русской](CHANGELOG.ru.md) версии
 
----
 
 ## Лицензия
 
