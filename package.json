@@ -1,6 +1,6 @@
 {
   "name": "@erinday/syncl",
-  "version": "2.1.1",
+  "version": "3.0.0",
   "description": "Reactive storage sync (localStorage / sessionStorage). No magic",
   "type": "module",
   "main": "dist/index.cjs",
